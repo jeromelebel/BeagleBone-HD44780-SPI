@@ -21,7 +21,7 @@ class HD44780
         int initDevice(int line, int row);
         void closeDevice(void);
         
-        void setCursorPosition(int line, int row);
+        void setCursorPosition(int row);
         void print(const unsigned char *string);
         void print(const char *string);
         void printCharacter(unsigned char character);

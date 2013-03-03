@@ -89,17 +89,17 @@ int HD44780::sendCommand(unsigned short *commands, unsigned int length, unsigned
     return 0;
 }
 
-void HD44780::setCursorPosition(int line, int row)
+void HD44780::setCursorPosition(int row)
 {
     unsigned char position;
     unsigned short command;
     
-    _y = line;
+    // I don't know how to change the line
+    assert(row >= _row);
     _x = row;
-    position = (_x * 5) + (_y * 101);
-    position = 254;
+    position = _x * 5;
     command = 0x80 | position;
-    //this->sendCommand(&command, 2);
+    this->sendCommand(&command, 2);
 }
 
 void HD44780::print(const char *string)
