@@ -21,9 +21,12 @@ class HD44780
         int initDevice(int line, int row);
         void closeDevice(void);
         
-        void setCursorPosition(int row);
+        void showCursor(unsigned int show, unsigned int blinking);
+        void setGlyphPosition(int row);
         void print(const unsigned char *string);
         void print(const char *string);
         void printCharacter(unsigned char character);
+        void printGlyphCharacter(unsigned char character);
         void printGlyph(unsigned char glyph[CHARACTERE_WIDTH]);
+        void moveToLine(unsigned int line);
 };

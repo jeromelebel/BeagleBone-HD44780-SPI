@@ -12,6 +12,19 @@
 #define SPI_MAX_SPEED         10000        /// maximum speed is 1 Mhz
 #define MAX_COLUMN            20
 
+#define ENGLISH_JAPANESE_FONT   0b00
+#define WESTERN_EUROPEAN_1_FONT 0b01
+#define ENGLISH_RUSSIAN_FONT    0b10
+#define WESTERN_EUROPEAN_2_FONT 0b11
+
+#define CLEAR_COMMAND           0b1
+#define HOME_COMMAND            0b10
+#define CURSOR_MODE_COMMAND(inc_dec, shift) (0b100 | ((0b1 & inc_dec) << 1) | (0b1 & shift))
+#define SCREEN_CURSOR_COMMAND(screen_on_off, cursor_on_off, blinking_on_off) (0b1000 | ((0b1 & screen_on_off) << 2) | ((0b1 & cursor_on_off) << 1) | (0b1 & blinking_on_off))
+#define FONT_COMMAND(font)      (0b111000 | (0b11 & font))
+#define MOVE_TO_DDRAM_COMMAND(address) (0b10000000 | (0b1111111 & address))
+#define MOVE_TO_CGRAM_COMMAND(address) (0b1000000 | (0b111111 & address))
+
 HD44780::HD44780(void)
 {
     _font = &font1;
@@ -63,7 +76,7 @@ void HD44780::closeDevice(void)
 
 int HD44780::initDevice(int line, int row)
 {
-    unsigned short initialization[] = { 0b111001, 0b1000, 0b10, 0b110, 0b10, 0b1100, 0b1111, 0b11100, 0b10 };
+    unsigned short initialization[] = {  FONT_COMMAND(ENGLISH_JAPANESE_FONT), SCREEN_CURSOR_COMMAND(0, 0, 0), CLEAR_COMMAND, CURSOR_MODE_COMMAND(1, 0), HOME_COMMAND, SCREEN_CURSOR_COMMAND(1, 0, 0) };
     this->sendCommand(initialization, sizeof(initialization));
     _line = line;
     _row = row;
@@ -82,6 +95,10 @@ int HD44780::sendCommand(unsigned short *commands, unsigned int length, unsigned
     spi.speed_hz      = SPI_MAX_SPEED;
     spi.bits_per_word = SPI_BITS_PER_WORD;
  
+/*    printf("command size %d %d\n", length, delay);
+    for (unsigned int ii = 0; ii < length; ii += 2) {
+        printf("  command %d %d '%c'\n", ((unsigned char *)commands)[ii], ((unsigned char *)commands)[ii + 1], (((unsigned char *)commands)[ii] >= 32) ? ((unsigned char *)commands)[ii] : '-');
+    }*/
     if(ret = ioctl (_spi_fd, SPI_IOC_MESSAGE(1), &spi) < 0){
         printf("ERROR while sending\n");
         return -1;
@@ -89,7 +106,7 @@ int HD44780::sendCommand(unsigned short *commands, unsigned int length, unsigned
     return 0;
 }
 
-void HD44780::setCursorPosition(int row)
+void HD44780::setGlyphPosition(int row)
 {
     unsigned char position;
     unsigned short command;
@@ -102,6 +119,26 @@ void HD44780::setCursorPosition(int row)
     this->sendCommand(&command, 2);
 }
 
+void HD44780::moveToLine(unsigned int line)
+{
+    unsigned short command;
+    
+    if (line == 0) {
+        command = HOME_COMMAND;
+    } else {
+        command = MOVE_TO_DDRAM_COMMAND(0xC0);
+    }
+    this->sendCommand(&command, sizeof(command));
+}
+
+void HD44780::showCursor(unsigned int show, unsigned int blinking)
+{
+    unsigned short command;
+    
+    command = SCREEN_CURSOR_COMMAND(1, show, blinking);
+    this->sendCommand(&command, sizeof(command));
+}
+
 void HD44780::print(const char *string)
 {
     this->print((const unsigned char *)string);
@@ -110,12 +147,21 @@ void HD44780::print(const char *string)
 void HD44780::print(const unsigned char *string)
 {
     while (string[0]) {
+        //this->printGlyphCharacter(string[0]);
         this->printCharacter(string[0]);
         string++;
     }
 }
 
 void HD44780::printCharacter(unsigned char character)
+{
+    unsigned short command;
+    
+    command = 0x200 | character;
+    this->sendCommand(&command, sizeof(command));
+}
+
+void HD44780::printGlyphCharacter(unsigned char character)
 {
     unsigned char ii;
     unsigned char glyph[CHARACTERE_WIDTH];

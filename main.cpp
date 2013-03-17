@@ -21,13 +21,24 @@ int main(int argc, char* argv[])
         printf("can't open device\n");
         return 1;
     }
-    if (display->initDevice(2, 16) != 0) {
-        printf("can't init device\n");
-        return 1;
-    }
     ii = 1;
     while (argc > ii) {
-        display->print(argv[ii]);
+        if (strcmp(argv[ii], "--init") == 0) {
+            if (display->initDevice(2, 16) != 0) {
+                printf("can't init device\n");
+                return 1;
+            }
+        } else if (strcmp(argv[ii], "--secondline") == 0) {
+            display->moveToLine(1);
+        } else if (strcmp(argv[ii], "--firstline") == 0) {
+            display->moveToLine(0);
+        } else if (strcmp(argv[ii], "--showcursor") == 0) {
+            display->showCursor(1, 1);
+        } else if (strcmp(argv[ii], "--hidecursor") == 0) {
+            display->showCursor(0, 0);
+        } else {
+            display->print(argv[ii]);
+        }
         ii++;
     }
     return 0;
